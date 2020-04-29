@@ -22,6 +22,7 @@ import BaseDropDown from '@okta/courage/src/views/components/BaseDropDown';
 import BaseForm from '@okta/courage/src/views/forms/BaseForm';
 import Toolbar from '@okta/courage/src/views/forms/components/Toolbar';
 import FormUtil from '@okta/courage/src/views/forms/helpers/FormUtil';
+import ErrorBanner from '@okta/courage/src/views/forms/helpers/ErrorBanner';
 import InputRegistry from '@okta/courage/src/views/forms/helpers/InputRegistry';
 import SchemaFormFactory from '@okta/courage/src/views/forms/helpers/SchemaFormFactory';
 import CheckBox from '@okta/courage/src/views/forms/inputs/CheckBox';
@@ -85,6 +86,7 @@ const Okta = {
         helpers: {
           FormUtil,
           SchemaFormFactory,
+          ErrorBanner
         },
 
         components: {
