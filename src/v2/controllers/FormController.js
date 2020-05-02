@@ -83,7 +83,6 @@ export default Controller.extend({
     // trigger formname change to change view
     this.options.appState.set('currentFormName', formName);
     this.options.appState.trigger('idxResponseUpdated', formName);
-
   },
 
   handleFormSave (model) {
@@ -93,9 +92,7 @@ export default Controller.extend({
       model.trigger('error', `Cannot find http action for "${formName}".`);
       return;
     }
-
-    this.toggleFormButtonState(true);
-    model.trigger('request');
+    this.toggleFormState(model, true);
     return idx.proceed(formName, model.toJSON())
       .then(resp => this.updateAppStateWithNewIdx(resp))
       .catch(error => {
@@ -107,10 +104,14 @@ export default Controller.extend({
           // the SIW can proceed to the next step without showing error
           this.updateAppStateWithNewIdx(error);
         } else {
-          model.trigger('error', model, {'responseJSON': error}, true);
-          this.toggleFormButtonState(false);
+          this.showFormErrors(model, error);
         }
       });
+  },
+
+  showFormErrors(model, error) {
+    model.trigger('handleFormError', model, {'responseJSON': error});
+    this.toggleFormState(model, false);
   },
 
   updateAppStateWithNewIdx: function (idxResp) {
@@ -126,8 +127,9 @@ export default Controller.extend({
    *
    * @param {boolean} disabled whether add extra disable CSS class.
    */
-  toggleFormButtonState: function (disabled) {
+  toggleFormState: function (model, disabled) {
     var button = this.$el.find('.o-form-button-bar .button');
+    disabled ? model.trigger('formRequestStart') : model.trigger('formRequestRetrieved');
     button.toggleClass('link-button-disabled', disabled);
   },
 

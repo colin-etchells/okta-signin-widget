@@ -12,6 +12,7 @@ export default Form.extend({
   noCancelButton: true,
   title: 'Authenticate',
   save: loc('oform.next', 'login'),
+  customSavingState: {start : 'formRequestStart', stop: 'formRequestRetrieved' },
 
   initialize: function () {
     const uiSchemas = this.getUISchema();
@@ -25,7 +26,7 @@ export default Form.extend({
     });
 
     this.listenTo(this, 'save', this.saveForm);
-    this.listenTo(this.model, 'error', _.throttle(this.handleIonErrorResponses, 100, { trailing: false }));
+    this.listenTo(this.model, 'handleFormError', _.throttle(this.handleIonErrorResponses, 100, { trailing: false }));
   },
 
   saveForm(model) {
@@ -63,18 +64,21 @@ export default Form.extend({
     }
   },
 
-  handleIonErrorResponses(model, res, ev, ev1, ev2) {
+  handleIonErrorResponses(model, res) {
     // console.log(model, res);
     // parse response, find field errors and global errors
     let inlineFieldValidationErrors = this.parseFieldErrors(res.responseJSON);
     let globalErrors = this.getGlobalErrors(res.responseJSON);
+    let terminalErrors = this.getTerminalErrors(res.responseJSON);
 
     //show field validation errors by triggering `form:field-errors`, use errors[] object
     if (_.size(inlineFieldValidationErrors)) {
       _.each(inlineFieldValidationErrors, (errors, field) => {
-        this.model.trigger('form:field-error', this.__errorFields[field] || field, _.map(errors, (err) => {
-          return err;
-        }), this);
+        if(errors.length) {
+          this.model.trigger('form:field-error', this.__errorFields[field] || field, _.map(errors, (err) => {
+            return err;
+          }), this);
+        }
       });
     }
 
@@ -84,6 +88,12 @@ export default Form.extend({
       this.add(ErrorBanner, '.o-form-error-container', { options: { errorSummary: globalErrors.join(' ') } });
     }
 
+    //show top callout for all terminal errors
+    if (terminalErrors.length) {
+      this.$('.o-form-error-container').addClass('o-form-has-errors');
+      this.add(ErrorBanner, '.o-form-error-container', { options: { errorSummary: terminalErrors.join(' ') } });
+    }    
+
     //trigger model resize
 
     //stop propagting `invalid error` so that __showErrors (from courage) won't execute
@@ -92,13 +102,23 @@ export default Form.extend({
 
   getGlobalErrors(res) {
     let globalErrors = [];
-    if (res.messages && res.messages.value.length) {
+    if (res.messages && res.messages.value) {
       _.each(res.messages.value, (value) => {
         globalErrors.push(value.message);
       });
     }
 
     return globalErrors;
+  },
+
+  getTerminalErrors(res) {
+    let terminal = [];
+    if (res.terminal && res.terminal.value.message) {
+      _.each(res.terminal.value, (value) => {
+        terminal.push(value.message);
+      });
+    }
+    return terminal;
   },
 
   parseFieldErrors(res) {
